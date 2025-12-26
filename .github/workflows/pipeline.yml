@@ -1,0 +1,88 @@
+name: Full CI-CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: myapp
+  IMAGE_TAG: ${{ github.sha }}
+  NAMESPACE: backend-dev-c1
+
+jobs:
+  security:
+    name: Security Scan (GitLeaks + Trivy)
+    runs-on: [self-hosted, security]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: GitLeaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          fail: true
+
+      - name: Trivy FS Scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          severity: CRITICAL,HIGH
+          exit-code: 1
+  build:
+    name: Build & Push Docker Image
+    runs-on: [self-hosted, docker]
+    needs: security
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Registry
+        run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | \
+          docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build image
+        run: |
+          docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+      - name: Push image
+        run: |
+          docker tag $IMAGE_NAME:$IMAGE_TAG ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
+          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
+  deploy:
+    name: Deploy to Kubernetes (Helm Template)
+    runs-on: [self-hosted, kubernetes]
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Verify cluster access
+        run: kubectl get nodes
+
+      - name: Helm template (render YAML)
+        run: |
+          helm template myapp ./helm/myapp \
+            --namespace $NAMESPACE \
+            -f values-dev.yaml \
+            --set image.repository=${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME \
+            --set image.tag=$IMAGE_TAG \
+            > rendered.yaml
+
+      - name: Kubernetes dry-run
+        run: |
+          kubectl apply --dry-run=client -f rendered.yaml
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f rendered.yaml
