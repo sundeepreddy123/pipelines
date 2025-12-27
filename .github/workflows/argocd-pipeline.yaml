@@ -11,9 +11,6 @@ env:
   VALUES_FILE: temps/value.yaml
 
 jobs:
-  # -------------------------
-  # 1️⃣ SECURITY
-  # -------------------------
   security:
     runs-on: [self-hosted, security]
 
@@ -31,10 +28,6 @@ jobs:
           scan-type: fs
           severity: CRITICAL,HIGH
           exit-code: 1
-
-  # -------------------------
-  # 2️⃣ BUILD IMAGE
-  # -------------------------
   build:
     runs-on: [self-hosted, docker]
     needs: security
@@ -53,10 +46,7 @@ jobs:
           docker tag $IMAGE_NAME:$IMAGE_TAG \
             ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
           docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:$IMAGE_TAG
-
-  # -------------------------
-  # 3️⃣ UPDATE GIT (GITOPS)
-  # -------------------------
+          
   update-manifests:
     runs-on: [self-hosted, linux]
     needs: build
