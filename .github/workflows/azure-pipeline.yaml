@@ -1,0 +1,56 @@
+on:
+  push:
+    branches: [ main ]
+
+parameters:
+  - name: env
+    type: string
+    values:
+      - dev
+      - stage
+      - prod
+  - name: azuresubscription
+    type: string
+    values:
+      - pipeline-prod
+      - pipeline-devtest
+  - name: package
+    type: string
+    default: package.zip
+  - name: accountName
+    type: string
+    values:
+      - prod143
+      - dev143
+  stages:
+    - stage: set_variables_dev
+      conditoin: startWith{'${{ parameters.cluster }}', 'dev')
+      variables:
+        - group:
+        - name: aws-access-key-id
+          value: $[variables.AWS_ACCESS_KEY_ID]
+        - name: aws-access-key-id
+          value: $[variables.AWS_ADMIN_ROLE]
+        - name: aws-admin-role
+          value: $[variables.AWS_REGION]
+        - name: aws-region
+          value: $[variables.AWS_REGION]
+        - name: aws-session
+          value: 'AWSCLI-session-02'
+        - name: accountName
+          value: ${{ parameters.accountName }}
+        - name: releaseToInstall
+          value: ${{ parameters.releaseToInstall }}
+        - name: azureSubscription
+          value: ${{ parameters.azureSubscription }}
+        - name: values-file
+          values: './templatess/values/values.${{ parameters.cluster }}.yaml
+        - name: cert
+          values: '*.dev.com'
+  jobs:
+    - job: install_package
+      displayName: 'Install Almond'
+      steps:
+      - template: azure-pipelines-template.yaml
+        parameters:
+          subName: ${{ parameters.azureSubscription }}
