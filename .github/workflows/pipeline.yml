@@ -8,7 +8,7 @@ on:
 env:
   IMAGE_NAME: myapp
   IMAGE_TAG: ${{ github.sha }}
-  NAMESPACE: backend-dev-c1
+  NAMESPACE: backend
 
 jobs:
   security:
