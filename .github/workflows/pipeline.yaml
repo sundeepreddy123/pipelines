@@ -1,0 +1,132 @@
+trigger:
+- main
+
+variables:
+  imageName: myapp
+  tag: $(Build.BuildId)
+  namespace: backend
+
+stages:
+
+# ------------------------------
+# STAGE 1 : CODE VALIDATION
+# ------------------------------
+
+- stage: CodeValidation
+  jobs:
+  - job: LintAndSecurity
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+
+    - checkout: self
+
+    - script: |
+        echo "Running code lint"
+        npm install
+        npm run lint
+      displayName: "Code Lint Check"
+
+    - script: |
+        echo "Running security scan"
+        trivy fs .
+      displayName: "Security Scan"
+
+# ------------------------------
+# STAGE 2 : BUILD DOCKER IMAGE
+# ------------------------------
+
+- stage: Build
+  dependsOn: CodeValidation
+
+  jobs:
+  - job: DockerBuild
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+
+    - checkout: self
+
+    - task: Docker@2
+      inputs:
+        command: build
+        Dockerfile: Dockerfile
+        repository: $(imageName)
+        tags: |
+          $(tag)
+
+# ------------------------------
+# STAGE 3 : PUSH IMAGE
+# ------------------------------
+
+- stage: Push
+  dependsOn: Build
+
+  jobs:
+  - job: PushImage
+    steps:
+
+    - task: Docker@2
+      inputs:
+        command: push
+        repository: $(imageName)
+        tags: |
+          $(tag)
+
+# ------------------------------
+# STAGE 4 : TERRAFORM DEPLOY
+# ------------------------------
+
+- stage: Terraform
+  dependsOn: Push
+
+  jobs:
+  - job: TerraformDeploy
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+
+    - checkout: self
+
+    - script: |
+        terraform init
+        terraform plan
+        terraform apply -auto-approve
+      displayName: "Deploy Infrastructure"
+
+# ------------------------------
+# STAGE 5 : DEPLOY TO K8s
+# ------------------------------
+
+- stage: Deploy
+  dependsOn: Terraform
+
+  jobs:
+  - job: KubernetesDeploy
+
+    steps:
+
+    - script: |
+        helm upgrade --install myapp ./helm \
+        --namespace $(namespace) \
+        --set image.tag=$(tag)
+      displayName: "Deploy to Kubernetes"
+
+# ------------------------------
+# STAGE 6 : VERIFY DEPLOYMENT
+# ------------------------------
+
+- stage: Verify
+  dependsOn: Deploy
+
+  jobs:
+  - job: HealthCheck
+
+    steps:
+
+    - script: |
+        kubectl rollout status deployment/myapp -n $(namespace)
+      displayName: "Check Deployment Status"
