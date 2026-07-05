@@ -10,7 +10,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   ECR_REPOSITORY: nginx
-  APP_VERSION: 1.0.0
+  APP_VERSION: 1.0
 
 jobs:
   build:
@@ -35,11 +35,15 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }} ./app
+          docker build \
+            -t ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }} \
+            -t ${{ env.ECR_REPOSITORY }}:latest \
+            ./app
 
       - name: Tag Docker image
         run: |
-          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }} ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-{{ github.run_number }}
+          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }} ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }}
+          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
         
       # - name: Install Trivy scanner
       #   run: |
@@ -49,4 +53,5 @@ jobs:
 
       - name: Push Docker image to ECR
         run: |
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-{{ github.run_number }}
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }}
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
