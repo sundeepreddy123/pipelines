@@ -1,0 +1,7 @@
+apiVersion: v2
+name: sample-app
+description: Simple Helm Chart for EKS + Istio
+type: application
+
+version: 0.1.0
+appVersion: "1.0.0"

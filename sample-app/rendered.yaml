@@ -1,0 +1,103 @@
+---
+# Source: sample-app/templates/service.yaml
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: sample-app
+
+spec:
+
+  type: ClusterIP
+
+  selector:
+    app: sample-app
+
+  ports:
+
+  - port: 80
+
+    targetPort: 8080
+---
+# Source: sample-app/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: sample-app
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: sample-app
+
+  template:
+    metadata:
+      labels:
+        app: sample-app
+
+    spec:
+      containers:
+
+      - name: sample-app
+
+        image: "729859598223.dkr.ecr.ap-south-1.amazonaws.com/nginx:1.0.18"
+
+        imagePullPolicy: Always
+
+        ports:
+
+        - containerPort: 8080
+
+        resources:
+          limits:
+            cpu: 250m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+---
+# Source: sample-app/templates/gateway.yaml
+apiVersion: networking.istio.io/v1
+kind: Gateway
+
+metadata:
+  name: sample-app
+
+spec:
+
+  selector:
+    istio: ingressgateway
+
+  servers:
+
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+
+    hosts:
+      - nginx.sundeepreddy.com
+---
+# Source: sample-app/templates/virtualservice.yaml
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+
+metadata:
+  name: sample-app
+
+spec:
+  hosts:
+    - nginx.sundeepreddy.com
+
+  gateways:
+    - sample-app
+
+  http:
+    - route:
+        - destination:
+            host: sample-app
+            port:
+              number: 80

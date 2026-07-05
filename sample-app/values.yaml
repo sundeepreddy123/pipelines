@@ -1,0 +1,30 @@
+replicaCount: 2
+
+image:
+  repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/nginx
+  tag: "1.0.18"
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+gateway:
+  enabled: true
+
+  name: sample-app
+
+  selector:
+    istio: ingressgateway
+
+  host: nginx.sundeepreddy.com
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+  limits:
+    cpu: 250m
+    memory: 256Mi
