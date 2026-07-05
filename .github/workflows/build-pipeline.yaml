@@ -35,16 +35,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build \
-            -t ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }} \
-            -t ${{ env.ECR_REPOSITORY }}:latest \
-            ./app
+          docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }} ./app
 
       - name: Tag Docker image
         run: |
-          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }} ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }}
-          docker tag ${{ env.ECR_REPOSITORY }}:latest ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
-        
+          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }} ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}.${{ github.run_number }}        
       # - name: Install Trivy scanner
       #   run: |
       #     curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
@@ -53,5 +48,4 @@ jobs:
 
       - name: Push Docker image to ECR
         run: |
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }}
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}.${{ github.run_number }}
