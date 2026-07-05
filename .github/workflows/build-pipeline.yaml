@@ -1,16 +1,22 @@
 name: Build and push to ECR
 on:
-  push:
-    branches:
-      - main
-  
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Choose the image tag to build and push'
+        required: false
+        default: 'latest'
+        type: string
+
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   ECR_REPOSITORY: nginx
-  APP_VERSION: 1.0
 
 jobs:
   build:
@@ -35,11 +41,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }} ./app
+          docker build -t ${{ env.ECR_REPOSITORY }}:${IMAGE_TAG} ./app
 
       - name: Tag Docker image
         run: |
-          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}-${{ github.run_number }} ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}.${{ github.run_number }}        
+          docker tag ${{ env.ECR_REPOSITORY }}:${IMAGE_TAG} ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}
       # - name: Install Trivy scanner
       #   run: |
       #     curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
@@ -48,4 +54,4 @@ jobs:
 
       - name: Push Docker image to ECR
         run: |
-          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}.${{ github.run_number }}
+          docker push ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}
