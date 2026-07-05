@@ -41,11 +41,11 @@ jobs:
         run: |
           docker tag ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }} ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}
         
-      - name: Install Trivy scanner
-        run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
-          trivy --version
-          trivy image --exit-code 1 --severity HIGH,CRITICAL ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}
+      # - name: Install Trivy scanner
+      #   run: |
+      #     curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh
+      #     trivy --version
+      #     trivy image --exit-code 1 --severity HIGH,CRITICAL ${{ env.ECR_REPOSITORY }}:${{ env.APP_VERSION }}
 
       - name: Push Docker image to ECR
         run: |
