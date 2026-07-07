@@ -16,7 +16,7 @@ env:
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  ECR_REPOSITORY: nginx
+  ECR_REPOSITORY: product-service
 
 jobs:
   build:
@@ -46,7 +46,7 @@ jobs:
             IMAGE_TAG="latest"
           fi
           echo "Using image tag: $IMAGE_TAG"
-          docker build -t "${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}.${{ github.run_number }}" ./app
+          docker build -t "${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}.${{ github.run_number }}" ./product-service
 
       - name: Tag Docker image
         run: |
