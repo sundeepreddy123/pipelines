@@ -17,7 +17,7 @@ spec:
 
   - port: 80
 
-    targetPort: 8080
+    targetPort: 80
 ---
 # Source: sample-app/templates/deployment.yaml
 apiVersion: apps/v1
@@ -43,13 +43,13 @@ spec:
 
       - name: sample-app
 
-        image: "729859598223.dkr.ecr.ap-south-1.amazonaws.com/nginx:1.0.18"
+        image: "729859598223.dkr.ecr.ap-south-1.amazonaws.com/nginx:1.2.18"
 
         imagePullPolicy: Always
 
         ports:
 
-        - containerPort: 8080
+        - containerPort: 80
 
         resources:
           limits:
@@ -77,9 +77,21 @@ spec:
       number: 80
       name: http
       protocol: HTTP
+    
+    hosts:
+      - nginx.sundeepdevops.com
+      
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    
+    tls:
+      mode: SIMPLE
+      credentialName: webapp-cert
 
     hosts:
-      - nginx.sundeepreddy.com
+      - nginx.sundeepdevops.com
 ---
 # Source: sample-app/templates/virtualservice.yaml
 apiVersion: networking.istio.io/v1
@@ -90,7 +102,7 @@ metadata:
 
 spec:
   hosts:
-    - nginx.sundeepreddy.com
+    - nginx.sundeepdevops.site
 
   gateways:
     - sample-app

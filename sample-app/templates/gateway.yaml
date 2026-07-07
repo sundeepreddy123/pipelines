@@ -17,6 +17,18 @@ spec:
       number: 80
       name: http
       protocol: HTTP
+    
+    hosts:
+      - {{ .Values.gateway.host }}
+      
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    
+    tls:
+      mode: SIMPLE
+      credentialName: webapp-cert
 
     hosts:
       - {{ .Values.gateway.host }}
