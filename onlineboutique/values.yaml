@@ -1,0 +1,647 @@
+namespace: online-boutique
+
+cluster_name: dev
+
+imagePullSecrets:
+  - name: regcred
+
+services:
+
+  - name: frontend
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/frontend
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 80
+      targetPort: 8080
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+    readinessProbe:
+      initialDelaySeconds: 10
+      timeoutSeconds: 3
+
+    livenessProbe:
+      initialDelaySeconds: 30
+
+    enableHealthCheck: true
+
+    probePath: /_healthz
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMap: frontend-config
+
+    secret: frontend-secret
+
+    configMapData:
+
+      PORT: "8080"
+
+      PRODUCT_CATALOG_SERVICE_ADDR: productcatalogservice:3550
+
+      CURRENCY_SERVICE_ADDR: currencyservice:7000
+
+      CART_SERVICE_ADDR: cartservice:7070
+
+      SHIPPING_SERVICE_ADDR: shippingservice:50051
+
+      PAYMENT_SERVICE_ADDR: paymentservice:50051
+
+      EMAIL_SERVICE_ADDR: emailservice:5000
+
+      CHECKOUT_SERVICE_ADDR: checkoutservice:5050
+
+      RECOMMENDATION_SERVICE_ADDR: recommendationservice:8080
+
+      AD_SERVICE_ADDR: adservice:9555
+
+    secretData:
+
+     {}
+
+    ingress:
+
+      enabled: true
+
+      host: shop.sundeepdevops.site
+
+      path: /
+
+      pathType: Prefix
+
+  - name: productcatalogservice
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/productcatalogservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 3550
+      targetPort: 3550
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: false
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMap: productcatalog-config
+
+    secret: productcatalog-secret
+
+    configMapData:
+      PORT: "3550"
+
+    secretData: {}
+
+    ingress:
+      enabled: true
+      host: product.sundeepdevops.site
+      path: /
+      pathType: Prefix
+
+  - name: currencyservice
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/currencyservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 7000
+      targetPort: 7000
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: false
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMap: currency-config
+
+    secret: currency-secret
+
+    configMapData:
+      PORT: "7000"
+
+    secretData: {}
+
+    ingress:
+      enabled: true
+      host: currency.sundeepdevops.site
+      path: /
+      pathType: Prefix
+
+  - name: cartservice
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/cartservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 7070
+      targetPort: 7070
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: false
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMap: cart-config
+
+    secret: cart-secret
+
+    configMapData:
+      REDIS_ADDR: redis-cart:6379
+
+    secretData: {}
+
+    ingress:
+      enabled: false
+
+  - name: checkoutservice
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/checkoutservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 5050
+      targetPort: 5050
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+    enableHealthCheck: false
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMap: checkout-config
+
+    secret: checkout-secret
+
+    configMapData:
+      PRODUCT_CATALOG_SERVICE_ADDR: productcatalogservice:3550
+      SHIPPING_SERVICE_ADDR: shippingservice:50051
+      PAYMENT_SERVICE_ADDR: paymentservice:50051
+      EMAIL_SERVICE_ADDR: emailservice:5000
+      CURRENCY_SERVICE_ADDR: currencyservice:7000
+      CART_SERVICE_ADDR: cartservice:7070
+
+    secretData: {}
+
+    ingress:
+      enabled: false
+
+  - name: paymentservice
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/paymentservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 50051
+      targetPort: 50051
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: false
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMapData: {}
+
+    secretData:
+     {}
+
+    ingress:
+      enabled: false
+
+  - name: shippingservice
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/shippingservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 50051
+      targetPort: 50051
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: false
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMapData: {}
+
+    secretData:
+     {}
+
+    ingress:
+      enabled: false
+  - name: recommendationservice
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/recommendationservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 8080
+      targetPort: 8080
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: false
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMapData:
+      PRODUCT_CATALOG_SERVICE_ADDR: productcatalogservice:3550
+
+    secretData:
+     {}
+
+    ingress:
+      enabled: false
+  - name: emailservice
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/emailservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 5000
+      targetPort: 8080
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: true
+
+    probePath: /
+
+    readinessProbe:
+      initialDelaySeconds: 10
+      timeoutSeconds: 3
+
+    livenessProbe:
+      initialDelaySeconds: 30
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMapData: {}
+
+    secretData:
+     {}
+
+    ingress:
+      enabled: false
+  - name: emailservice
+
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/emailservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 5000
+      targetPort: 8080
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: true
+
+    probePath: /
+
+    readinessProbe:
+      initialDelaySeconds: 10
+      timeoutSeconds: 3
+
+    livenessProbe:
+      initialDelaySeconds: 30
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMapData: {}
+
+    secretData:
+     {}
+
+    ingress:
+      enabled: false
+  
+  - name: emailservice
+
+    replicaCount: 1
+
+    image:
+      repository: us-central1-docker.pkg.dev/google-samples/microservices-demo/emailservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 5000
+      targetPort: 8080
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: true
+
+    probePath: /
+
+    readinessProbe:
+      initialDelaySeconds: 10
+      timeoutSeconds: 3
+
+    livenessProbe:
+      initialDelaySeconds: 30
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMapData: {}
+
+    secretData:
+     {}
+
+    ingress:
+      enabled: false
+
+  - name: adservice
+    replicaCount: 1
+
+    image:
+      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/adservice
+      tag: 1.1.100
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 9555
+      targetPort: 9555
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: false
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 75
+      targetMemoryUtilizationPercentage: 75
+
+    configMapData: {}
+
+    secretData:
+     {}
+
+    ingress:
+      enabled: false
+
+  - name: redis-cart
+
+    replicaCount: 1
+
+    image:
+      repository: redis
+      tag: 7.2-alpine
+      pullPolicy: IfNotPresent
+
+    service:
+      type: ClusterIP
+      port: 6379
+      targetPort: 6379
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+
+    enableHealthCheck: false
+
+    mount:
+      enabled: false
+
+    autoscaling:
+      enabled: false
+
+    configMapData: {}
+
+    secretData: {}
+
+    ingress:
+      enabled: false
+  # paymentservice
+  # shippingservice
+  # recommendationservice
+  # emailservice
+  # adservice
+  # redis-cart

@@ -1,0 +1,23 @@
+{{- range .Values.services }}
+---
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+
+spec:
+
+  type: {{ .service.type }}
+
+  selector:
+    app: {{ .name }}
+
+  ports:
+    - name: http
+      port: {{ .service.port }}
+      targetPort: {{ .service.targetPort }}
+      protocol: grpc
+
+{{- end }}

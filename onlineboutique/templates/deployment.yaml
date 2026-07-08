@@ -1,0 +1,113 @@
+{{- range .Values.services }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: {{ .name }}
+    app.kubernetes.io/name: {{ .name }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: {{ .replicaCount }}
+
+  selector:
+    matchLabels:
+      app: {{ .name }}
+
+  template:
+    metadata:
+      labels:
+        app: {{ .name }}
+
+    spec:
+
+{{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml . | nindent 8 }}
+{{- end }}
+
+      containers:
+        - name: {{ .name }}
+
+          image: "{{ .image.repository }}:{{ .image.tag }}"
+          imagePullPolicy: {{ .image.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: {{ .service.targetPort }}
+              protocol: TCP
+
+{{- with .resources }}
+          resources:
+{{ toYaml . | nindent 12 }}
+{{- end }}
+
+{{- if or .configMapData .secretData }}
+          envFrom:
+{{- if .configMapData }}
+            - configMapRef:
+                name: {{ .name }}-config
+{{- end }}
+{{- end }}
+
+{{- if .enableHealthCheck }}
+
+          readinessProbe:
+            httpGet:
+              path: {{ default "/" .probePath }}
+              port: {{ .service.targetPort }}
+            initialDelaySeconds: {{ default 10 .readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ default 3 .readinessProbe.timeoutSeconds }}
+            periodSeconds: 10
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: {{ default "/" .probePath }}
+              port: {{ .service.targetPort }}
+            initialDelaySeconds: {{ default 30 .livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 3
+
+{{- end }}
+
+{{- if and .mount .mount.enabled }}
+
+          volumeMounts:
+{{- with .mount.volumeMounts }}
+{{ toYaml . | nindent 12 }}
+{{- end }}
+
+      volumes:
+{{- with .mount.volumes }}
+{{ toYaml . | nindent 8 }}
+{{- end }}
+
+{{- end }}
+
+{{- with .nodeSelector }}
+
+      nodeSelector:
+{{ toYaml . | nindent 8 }}
+
+{{- end }}
+
+{{- with .affinity }}
+
+      affinity:
+{{ toYaml . | nindent 8 }}
+
+{{- end }}
+
+{{- with .tolerations }}
+
+      tolerations:
+{{ toYaml . | nindent 8 }}
+
+{{- end }}
+
+{{- end }}

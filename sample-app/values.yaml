@@ -15,10 +15,18 @@ gateway:
 
   name: sample-app
 
+  annotations: {}
+
   selector:
     istio: ingressgateway
 
   host: nginx.sundeepdevops.com
+
+  tls:
+    enabled: true
+    credentialName: webapp-cert
+    hosts:
+      - nginx.sundeepdevops.com
 
 resources:
   requests:

@@ -1,0 +1,40 @@
+{{- range .Values.services }}
+
+{{- if .ingress.enabled }}
+
+---
+apiVersion: networking.istio.io/v1
+
+kind: VirtualService
+
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Values.namespace }}
+
+spec:
+
+  gateways:
+    - {{ $.Release.Name }}-gateway
+
+  hosts:
+    - {{ .ingress.host }}
+
+  http:
+
+    - match:
+
+        - uri:
+            prefix: {{ .ingress.path | default "/" }}
+
+      route:
+
+        - destination:
+
+            host: {{ .name }}
+
+            port:
+              number: {{ .service.port }}
+
+{{- end }}
+
+{{- end }}

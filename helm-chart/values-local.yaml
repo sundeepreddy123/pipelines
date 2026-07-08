@@ -1,0 +1,115 @@
+# Local override values for testing Online Boutique locally.
+# Use this with the existing helm-chart to deploy without Istio, network policies,
+# and cloud-only features.
+
+serviceAccounts:
+  create: false
+  annotations: {}
+  annotationsOnlyForCartservice: false
+
+networkPolicies:
+  create: false
+
+sidecars:
+  create: false
+
+authorizationPolicies:
+  create: false
+
+opentelemetryCollector:
+  create: false
+
+googleCloudOperations:
+  profiler: false
+  tracing: false
+  metrics: false
+
+seccompProfile:
+  enable: false
+  type: RuntimeDefault
+
+securityContext:
+  enable: true
+
+adService:
+  create: true
+  name: adservice
+
+cartService:
+  create: true
+  name: cartservice
+
+checkoutService:
+  create: true
+  name: checkoutservice
+
+currencyService:
+  create: true
+  name: currencyservice
+
+emailService:
+  create: true
+  name: emailservice
+
+frontend:
+  create: true
+  name: frontend
+  externalService: false
+  cymbalBranding: false
+  platform: local
+  singleSharedSession: false
+  virtualService:
+    create: false
+    hosts:
+      - "*"
+    gateway:
+      name: asm-ingressgateway
+      namespace: asm-ingress
+      labelKey: asm
+      labelValue: ingressgateway
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+loadGenerator:
+  create: false
+  name: loadgenerator
+
+paymentService:
+  create: true
+  name: paymentservice
+
+productCatalogService:
+  create: true
+  name: productcatalogservice
+  extraLatency: ""
+
+recommendationService:
+  create: true
+  name: recommendationservice
+
+shippingService:
+  create: true
+  name: shippingservice
+
+cartDatabase:
+  type: redis
+  connectionString: "redis-cart:6379"
+  inClusterRedis:
+    create: true
+    name: redis-cart
+    publicRepository: true
+  externalRedisTlsOrigination:
+    enable: false
+    name: exernal-redis-tls-origination
+    endpointAddress: ""
+    endpointPort: ""
+    certificate: ""
+
+shoppingAssistantService:
+  create: false
+  name: shoppingassistantservice

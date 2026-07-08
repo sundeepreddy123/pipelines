@@ -5,32 +5,35 @@ kind: Gateway
 
 metadata:
   name: {{ .Values.gateway.name }}
+  {{- with .Values.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 
 spec:
-
   selector:
 {{ toYaml .Values.gateway.selector | indent 4 }}
 
   servers:
-
   - port:
       number: 80
       name: http
       protocol: HTTP
-    
     hosts:
       - {{ .Values.gateway.host }}
-      
+
+  {{- if .Values.gateway.tls.enabled }}
   - port:
       number: 443
       name: https
       protocol: HTTPS
-    
     tls:
       mode: SIMPLE
-      credentialName: webapp-cert
-
+      credentialName: {{ .Values.gateway.tls.credentialName }}
     hosts:
-      - {{ .Values.gateway.host }}
+      {{- range .Values.gateway.tls.hosts }}
+      - {{ . }}
+      {{- end }}
+  {{- end }}
 
 {{- end }}
