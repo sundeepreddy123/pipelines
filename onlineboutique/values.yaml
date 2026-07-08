@@ -99,7 +99,7 @@ services:
     configMapData:
       PORT: 3550
       DISABLE_PROFILER: 1
-      EXTRA_LATENCY: 
+      EXTRA_LATENCY: ""
     secretData: {}
     gateway:
       enabled: true
@@ -435,12 +435,9 @@ services:
       limits:
         cpu: 300m
         memory: 256Mi
-
     enableHealthCheck: false
-
     mount:
       enabled: false
-
     autoscaling:
       enabled: true
       minReplicas: 1

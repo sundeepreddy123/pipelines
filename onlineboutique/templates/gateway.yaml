@@ -1,11 +1,16 @@
-{{- if .Values.gateway }}
-{{- if .Values.gateway.enabled }}
+{{- $gatewayCreated := false }}
+
+{{- range .Values.services }}
+
+{{- if and .gateway.enabled (not $gatewayCreated) }}
+
+---
 apiVersion: networking.istio.io/v1
 kind: Gateway
 
 metadata:
-  name: {{ .Release.Name }}-gateway
-  namespace: {{ .Values.namespace }}
+  name: {{ $.Release.Name }}-gateway
+  namespace: {{ $.Values.namespace }}
 
 spec:
   selector:
@@ -18,9 +23,14 @@ spec:
         protocol: HTTP
 
       hosts:
-{{- range .Values.gateway.hosts }}
-        - {{ . | quote }}
+{{- range $.Values.services }}
+{{- if .gateway.enabled }}
+        - {{ .gateway.host | quote }}
+{{- end }}
 {{- end }}
 
+{{- $gatewayCreated = true }}
+
 {{- end }}
+
 {{- end }}
