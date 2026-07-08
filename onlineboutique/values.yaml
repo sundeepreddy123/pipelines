@@ -6,21 +6,16 @@ imagePullSecrets:
   - name: regcred
 
 services:
-
   - name: frontend
-
     replicaCount: 1
-
     image:
       repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/frontend
       tag: 1.1.100
       pullPolicy: IfNotPresent
-
     service:
       type: ClusterIP
       port: 80
       targetPort: 8080
-
     resources:
       requests:
         cpu: 100m
@@ -28,131 +23,100 @@ services:
       limits:
         cpu: 500m
         memory: 512Mi
-
     readinessProbe:
       initialDelaySeconds: 10
       timeoutSeconds: 3
-
     livenessProbe:
       initialDelaySeconds: 30
-
     enableHealthCheck: true
-
     probePath: /_healthz
-
     mount:
       enabled: false
-
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
-
     configMap: frontend-config
-
     secret: frontend-secret
-
     configMapData:
-
-      PORT: "8080"
-
+      PORT: 8080
       PRODUCT_CATALOG_SERVICE_ADDR: productcatalogservice:3550
-
       CURRENCY_SERVICE_ADDR: currencyservice:7000
-
       CART_SERVICE_ADDR: cartservice:7070
-
       SHIPPING_SERVICE_ADDR: shippingservice:50051
-
       PAYMENT_SERVICE_ADDR: paymentservice:50051
-
       EMAIL_SERVICE_ADDR: emailservice:5000
-
+      ENABLE_SINGLE_SHARED_SESSION: false
       CHECKOUT_SERVICE_ADDR: checkoutservice:5050
-
+      ENABLE_ASSISTANT: false
       RECOMMENDATION_SERVICE_ADDR: recommendationservice:8080
-
+      CYMBAL_BRANDING: false
       AD_SERVICE_ADDR: adservice:9555
-
-    secretData:
-
-     {}
-
-    ingress:
-
+      ENV_PLATFORM: aws
+      SHOPPING_ASSISTANT_SERVICE_ADDR: shoppingassistantservice:80
+    secretData: {}
+    gateway:
       enabled: true
-
       host: shop.sundeepdevops.site
-
       path: /
-
       pathType: Prefix
 
   - name: productcatalogservice
-
     replicaCount: 1
-
     image:
       repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/productcatalogservice
       tag: 1.1.100
       pullPolicy: IfNotPresent
-
     service:
       type: ClusterIP
       port: 3550
       targetPort: 3550
-
     resources:
       requests:
         cpu: 100m
         memory: 128Mi
       limits:
         cpu: 300m
-        memory: 256Mi
-
+        memory: 256M
+      readinessProbe:
+        initialDelaySeconds: 10
+        timeoutSeconds: 3
+      livenessProbe:
+        initialDelaySeconds: 30
     enableHealthCheck: false
-
     mount:
       enabled: false
-
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
-
     configMap: productcatalog-config
-
     secret: productcatalog-secret
-
     configMapData:
-      PORT: "3550"
-
+      PORT: 3550
+      DISABLE_PROFILER: 1
+      EXTRA_LATENCY: 
     secretData: {}
-
-    ingress:
+    gateway:
       enabled: true
       host: product.sundeepdevops.site
       path: /
       pathType: Prefix
 
   - name: currencyservice
-
     replicaCount: 1
-
     image:
       repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/currencyservice
       tag: 1.1.100
       pullPolicy: IfNotPresent
-
     service:
       type: ClusterIP
       port: 7000
       targetPort: 7000
-
     resources:
       requests:
         cpu: 100m
@@ -160,29 +124,22 @@ services:
       limits:
         cpu: 300m
         memory: 256Mi
-
     enableHealthCheck: false
-
     mount:
       enabled: false
-
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
-
     configMap: currency-config
-
     secret: currency-secret
-
     configMapData:
-      PORT: "7000"
-
+      PORT: 7000
+      DISABLE_PROFILER: 1
     secretData: {}
-
-    ingress:
+    gateway:
       enabled: true
       host: currency.sundeepdevops.site
       path: /
@@ -217,7 +174,7 @@ services:
 
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
@@ -231,7 +188,7 @@ services:
 
     secretData: {}
 
-    ingress:
+    gateway:
       enabled: false
 
   - name: checkoutservice
@@ -263,7 +220,7 @@ services:
 
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
@@ -273,6 +230,7 @@ services:
     secret: checkout-secret
 
     configMapData:
+      PORT: 5050
       PRODUCT_CATALOG_SERVICE_ADDR: productcatalogservice:3550
       SHIPPING_SERVICE_ADDR: shippingservice:50051
       PAYMENT_SERVICE_ADDR: paymentservice:50051
@@ -282,7 +240,7 @@ services:
 
     secretData: {}
 
-    ingress:
+    gateway:
       enabled: false
 
   - name: paymentservice
@@ -306,27 +264,21 @@ services:
       limits:
         cpu: 300m
         memory: 256Mi
-
     enableHealthCheck: false
-
     mount:
       enabled: false
-
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
-
-    configMapData: {}
-
-    secretData:
-     {}
-
-    ingress:
+    configMapData: 
+      PORT: 50051
+      DISABLE_PROFILER: 1
+    secretData: {}
+    gateway:
       enabled: false
-
   - name: shippingservice
 
     replicaCount: 1
@@ -356,17 +308,16 @@ services:
 
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
 
-    configMapData: {}
-
-    secretData:
-     {}
-
-    ingress:
+    configMapData: 
+      PORT: 50051
+      DISABLE_PROFILER: 1
+    secretData: {}
+    gateway:
       enabled: false
   - name: recommendationservice
 
@@ -397,18 +348,20 @@ services:
 
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
 
     configMapData:
+      PORT: 8080
+      DISABLE_PROFILER: 1
       PRODUCT_CATALOG_SERVICE_ADDR: productcatalogservice:3550
 
     secretData:
      {}
 
-    ingress:
+    gateway:
       enabled: false
   - name: emailservice
 
@@ -448,118 +401,18 @@ services:
 
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
 
-    configMapData: {}
+    configMapData: 
+      PORT: 5000
+      DISABLE_PROFILER: 1
 
-    secretData:
-     {}
+    secretData: {}
 
-    ingress:
-      enabled: false
-  - name: emailservice
-
-    replicaCount: 1
-
-    image:
-      repository: 729859598223.dkr.ecr.ap-south-1.amazonaws.com/emailservice
-      tag: 1.1.100
-      pullPolicy: IfNotPresent
-
-    service:
-      type: ClusterIP
-      port: 5000
-      targetPort: 8080
-
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 300m
-        memory: 256Mi
-
-    enableHealthCheck: true
-
-    probePath: /
-
-    readinessProbe:
-      initialDelaySeconds: 10
-      timeoutSeconds: 3
-
-    livenessProbe:
-      initialDelaySeconds: 30
-
-    mount:
-      enabled: false
-
-    autoscaling:
-      enabled: true
-      minReplicas: 2
-      maxReplicas: 5
-      targetCPUUtilizationPercentage: 75
-      targetMemoryUtilizationPercentage: 75
-
-    configMapData: {}
-
-    secretData:
-     {}
-
-    ingress:
-      enabled: false
-  
-  - name: emailservice
-
-    replicaCount: 1
-
-    image:
-      repository: us-central1-docker.pkg.dev/google-samples/microservices-demo/emailservice
-      tag: 1.1.100
-      pullPolicy: IfNotPresent
-
-    service:
-      type: ClusterIP
-      port: 5000
-      targetPort: 8080
-
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 300m
-        memory: 256Mi
-
-    enableHealthCheck: true
-
-    probePath: /
-
-    readinessProbe:
-      initialDelaySeconds: 10
-      timeoutSeconds: 3
-
-    livenessProbe:
-      initialDelaySeconds: 30
-
-    mount:
-      enabled: false
-
-    autoscaling:
-      enabled: true
-      minReplicas: 2
-      maxReplicas: 5
-      targetCPUUtilizationPercentage: 75
-      targetMemoryUtilizationPercentage: 75
-
-    configMapData: {}
-
-    secretData:
-     {}
-
-    ingress:
+    gateway:
       enabled: false
 
   - name: adservice
@@ -590,33 +443,28 @@ services:
 
     autoscaling:
       enabled: true
-      minReplicas: 2
+      minReplicas: 1
       maxReplicas: 5
       targetCPUUtilizationPercentage: 75
       targetMemoryUtilizationPercentage: 75
 
     configMapData: {}
 
-    secretData:
-     {}
+    secretData: {}
 
-    ingress:
+    gateway:
       enabled: false
 
   - name: redis-cart
-
     replicaCount: 1
-
     image:
       repository: redis
       tag: 7.2-alpine
       pullPolicy: IfNotPresent
-
     service:
       type: ClusterIP
       port: 6379
       targetPort: 6379
-
     resources:
       requests:
         cpu: 100m
@@ -624,12 +472,9 @@ services:
       limits:
         cpu: 300m
         memory: 256Mi
-
     enableHealthCheck: false
-
     mount:
-      enabled: false
-
+      enabled: true
     autoscaling:
       enabled: false
 
@@ -637,11 +482,6 @@ services:
 
     secretData: {}
 
-    ingress:
+    gateway:
       enabled: false
-  # paymentservice
-  # shippingservice
-  # recommendationservice
-  # emailservice
-  # adservice
-  # redis-cart
+  

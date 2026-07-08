@@ -1,6 +1,6 @@
 {{- range .Values.services }}
 
-{{- if .ingress.enabled }}
+{{- if .gateway.enabled }}
 
 ---
 apiVersion: networking.istio.io/v1
@@ -17,14 +17,14 @@ spec:
     - {{ $.Release.Name }}-gateway
 
   hosts:
-    - {{ .ingress.host }}
+    - {{ .gateway.host }}
 
   http:
 
     - match:
 
         - uri:
-            prefix: {{ .ingress.path | default "/" }}
+            prefix: {{ .gateway.path | default "/" }}
 
       route:
 

@@ -7,6 +7,9 @@ metadata:
   name: {{ .name }}
   namespace: {{ $.Values.namespace }}
 
+  labels:
+    app: {{ .name }}
+
 spec:
 
   type: {{ .service.type }}
@@ -15,9 +18,8 @@ spec:
     app: {{ .name }}
 
   ports:
-    - name: http
+    - name: grpc
       port: {{ .service.port }}
       targetPort: {{ .service.targetPort }}
-      protocol: grpc
 
 {{- end }}
