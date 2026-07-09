@@ -18,8 +18,9 @@ spec:
     app: {{ .name }}
 
   ports:
-    - name: grpc
+    - name: {{ .service.portName }}
       port: {{ .service.port }}
       targetPort: {{ .service.targetPort }}
+      protocol: TCP
 
 {{- end }}

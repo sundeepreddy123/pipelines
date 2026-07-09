@@ -16,6 +16,7 @@ services:
       type: ClusterIP
       port: 80
       targetPort: 8080
+      portName: http
     resources:
       requests:
         cpu: 100m
@@ -73,6 +74,7 @@ services:
       type: ClusterIP
       port: 3550
       targetPort: 3550
+      portName: grpc
     resources:
       requests:
         cpu: 100m
@@ -80,11 +82,11 @@ services:
       limits:
         cpu: 300m
         memory: 256M
-      readinessProbe:
-        initialDelaySeconds: 10
-        timeoutSeconds: 3
-      livenessProbe:
-        initialDelaySeconds: 30
+    readinessProbe:
+      initialDelaySeconds: 10
+      timeoutSeconds: 3
+    livenessProbe:
+      initialDelaySeconds: 30
     enableHealthCheck: false
     mount:
       enabled: false
@@ -117,6 +119,7 @@ services:
       type: ClusterIP
       port: 7000
       targetPort: 7000
+      portName: grpc
     resources:
       requests:
         cpu: 100m
@@ -158,7 +161,7 @@ services:
       type: ClusterIP
       port: 7070
       targetPort: 7070
-
+      portName: grpc
     resources:
       requests:
         cpu: 100m
@@ -204,6 +207,7 @@ services:
       type: ClusterIP
       port: 5050
       targetPort: 5050
+      portName: grpc
 
     resources:
       requests:
@@ -256,7 +260,7 @@ services:
       type: ClusterIP
       port: 50051
       targetPort: 50051
-
+      portName: grpc
     resources:
       requests:
         cpu: 100m
@@ -292,7 +296,7 @@ services:
       type: ClusterIP
       port: 50051
       targetPort: 50051
-
+      portName: grpc
     resources:
       requests:
         cpu: 100m
@@ -332,7 +336,7 @@ services:
       type: ClusterIP
       port: 8080
       targetPort: 8080
-
+      portName:  grpc
     resources:
       requests:
         cpu: 100m
@@ -376,7 +380,7 @@ services:
       type: ClusterIP
       port: 5000
       targetPort: 8080
-
+      portName: grpc
     resources:
       requests:
         cpu: 100m
@@ -427,7 +431,7 @@ services:
       type: ClusterIP
       port: 9555
       targetPort: 9555
-
+      portName: grpc
     resources:
       requests:
         cpu: 100m
@@ -462,6 +466,7 @@ services:
       type: ClusterIP
       port: 6379
       targetPort: 6379
+      portName: tcp
     resources:
       requests:
         cpu: 100m
