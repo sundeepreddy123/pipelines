@@ -1,18 +1,5 @@
 name: EKS Terraform
 
-run-name: >-
-  ${{
-    github.event_name == 'pull_request'
-    && format('EKS Terraform PR Plan #{0}', github.event.pull_request.number)
-    || github.event.inputs.action == 'apply'
-    && 'EKS Terraform Apply'
-    || github.event.inputs.action == 'destroy'
-    && 'EKS Terraform Destroy'
-    || github.event.inputs.action == 'plan'
-    && 'EKS Terraform Plan'
-    || 'EKS Terraform'
-  }}
-
 on:
   pull_request:
     paths:
