@@ -1,0 +1,46 @@
+name: Application CD Pipeline
+
+on:
+  # push:
+  #   branches: [ main ]
+  workflow_dispatch:                 
+    # workflows:
+    #   - Application CI
+    # types:
+    #   - completed
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: product-service
+
+      - name: Docker Build
+        run: |
+
+          docker build \
+          -t product-service:${{ github.sha }} .
+
+      - name: Trivy Scan
+        run: |
+
+          trivy image \
+          product-service:${{ github.sha }}
+
+      - name: Cosign Sign
+        run: |
+
+          cosign sign \
+          product-service:${{ github.sha }}
+
+      # - name: Push Image
+      #   run: |
+
+      #     docker push \
+      #     <AWS_ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/product-service:${{ github.sha }}
