@@ -1,0 +1,113 @@
+name: ArgoCD Deployment
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    env:
+      ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+      ARGOCD_USERNAME: ${{ secrets.ARGOCD_USERNAME }}
+      ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
+
+    steps:
+
+    ####################################################
+    # Install ArgoCD CLI
+    ####################################################
+
+    - name: Install ArgoCD CLI
+      run: |
+
+        VERSION=v2.12.6
+
+        curl -sSL -o argocd \
+        https://github.com/argoproj/argo-cd/releases/download/${VERSION}/argocd-linux-amd64
+
+        chmod +x argocd
+
+        sudo mv argocd /usr/local/bin/
+
+    ####################################################
+    # Login
+    ####################################################
+
+    - name: Login
+
+      run: |
+
+        argocd login $ARGOCD_SERVER \
+        --username $ARGOCD_USERNAME \
+        --password $ARGOCD_PASSWORD \
+        --insecure
+
+    ####################################################
+    # Sync DEV
+    ####################################################
+
+    - name: Sync Dev
+
+      run: |
+
+        argocd app sync onlineboutique-dev
+
+    ####################################################
+    # Wait for Healthy
+    ####################################################
+
+    - name: Wait DEV
+
+      run: |
+
+        argocd app wait onlineboutique-dev \
+        --health \
+        --sync
+
+    ####################################################
+    # Sync QA
+    ####################################################
+
+    - name: Sync QA
+
+      run: |
+
+        argocd app sync onlineboutique-qa
+
+        argocd app wait onlineboutique-qa \
+        --health \
+        --sync
+
+    ####################################################
+    # Sync Stage
+    ####################################################
+
+    - name: Sync Stage
+
+      run: |
+
+        argocd app sync onlineboutique-stage
+
+        argocd app wait onlineboutique-stage \
+        --health \
+        --sync
+
+    ####################################################
+    # Sync Production
+    ####################################################
+
+    - name: Sync Production
+
+      run: |
+
+        argocd app sync onlineboutique-prod
+
+        argocd app wait onlineboutique-prod \
+        --health \
+        --sync

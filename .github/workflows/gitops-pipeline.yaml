@@ -1,0 +1,213 @@
+name: GitOps Deployment Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+
+      image_tag:
+        description: "Docker Image Tag"
+        required: true
+        default: "v1.0.0"
+
+      environments:
+        description: "Comma separated environments (dev,qa,stage,prod)"
+        required: true
+        default: "dev"
+
+permissions:
+  contents: write
+
+jobs:
+
+  gitops:
+
+    runs-on: ubuntu-latest
+
+    env:
+      CHART_PATH: onlineboutique
+
+    steps:
+
+###############################################################
+# Checkout Repository
+###############################################################
+
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+###############################################################
+# Install Helm
+###############################################################
+
+    - name: Install Helm
+      uses: azure/setup-helm@v4
+
+###############################################################
+# Install kubectl
+###############################################################
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@v4
+
+###############################################################
+# Install kubeconform
+###############################################################
+
+    - name: Install kubeconform
+      run: |
+
+        wget https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+
+        tar -xzf kubeconform-linux-amd64.tar.gz
+
+        sudo mv kubeconform /usr/local/bin/
+
+###############################################################
+# Install yq
+###############################################################
+
+    - name: Install yq
+      run: |
+
+        sudo wget \
+        https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+        -O /usr/local/bin/yq
+
+        sudo chmod +x /usr/local/bin/yq
+
+###############################################################
+# Update Image Tags
+###############################################################
+
+    - name: Update Helm Values
+
+      run: |
+
+        IFS=',' read -ra ENVS <<< "${{ github.event.inputs.environments }}"
+
+        for ENV in "${ENVS[@]}"
+        do
+
+          FILE="${CHART_PATH}/values-${ENV}.yaml"
+
+          if [ -f "$FILE" ]; then
+
+            echo "Updating ${FILE}"
+
+            yq -i '.image.tag = "${{ github.event.inputs.image_tag }}"' "$FILE"
+
+          else
+
+            echo "$FILE not found"
+
+            exit 1
+
+          fi
+
+        done
+
+###############################################################
+# Helm Lint
+###############################################################
+
+    - name: Helm Lint
+
+      run: |
+
+        helm lint ${CHART_PATH}
+
+###############################################################
+# Helm Template Validation
+###############################################################
+
+    - name: Render Helm Templates
+
+      run: |
+
+        IFS=',' read -ra ENVS <<< "${{ github.event.inputs.environments }}"
+
+        mkdir rendered
+
+        for ENV in "${ENVS[@]}"
+        do
+
+          helm template ${ENV} \
+            ${CHART_PATH} \
+            -f ${CHART_PATH}/values-${ENV}.yaml \
+            > rendered/${ENV}.yaml
+
+        done
+
+###############################################################
+# Kubernetes Manifest Validation
+###############################################################
+
+    - name: Validate Rendered YAML
+
+      run: |
+
+        for FILE in rendered/*.yaml
+        do
+
+          echo "Validating ${FILE}"
+
+          kubeconform \
+            -strict \
+            -summary \
+            ${FILE}
+
+        done
+
+###############################################################
+# Show Changes
+###############################################################
+
+    - name: Show Git Diff
+
+      run: |
+
+        git diff
+
+###############################################################
+# Configure Git
+###############################################################
+
+    - name: Configure Git
+
+      run: |
+
+        git config user.name "github-actions"
+
+        git config user.email "github-actions@company.com"
+
+###############################################################
+# Commit
+###############################################################
+
+    - name: Commit Changes
+
+      run: |
+
+        git add .
+
+        if git diff --cached --quiet
+        then
+
+          echo "No changes detected"
+
+          exit 0
+
+        fi
+
+        git commit \
+        -m "Deploy image ${{ github.event.inputs.image_tag }} to ${{ github.event.inputs.environments }}"
+
+###############################################################
+# Push
+###############################################################
+
+    - name: Push Changes
+
+      run: |
+
+        git push origin HEAD
