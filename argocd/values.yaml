@@ -1,0 +1,27 @@
+namespace: argocd
+
+project:
+
+  name: platform
+
+repositories:
+
+  - name: gitops
+    url: https://github.com/company/gitops-platform.git
+
+clusters:
+
+  - name: dev
+    server: https://DEV_ENDPOINT
+
+  - name: qa
+    server: https://QA_ENDPOINT
+
+  - name: stage
+    server: https://STAGE_ENDPOINT
+
+  - name: prod
+    server: https://PROD_ENDPOINT
+
+  - name: dr
+    server: https://DR_ENDPOINT
