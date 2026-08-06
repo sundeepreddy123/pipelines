@@ -1,27 +1,32 @@
 namespace: argocd
 
+serviceAccount:
+  name: argocd
+  iamRoleArn: arn:aws:iam::<ACCOUNT_ID>:role/argocd-management-role
+
+repository:
+  url: https://github.com/sundeepreddy123/pipelines.git
+  targetRevision: main
+
 project:
-
   name: platform
+  description: Enterprise GitOps Platform
 
-repositories:
+aws:
+  region: us-east-1
 
-  - name: gitops
-    url: https://github.com/company/gitops-platform.git
+clusterSecretStore:
+  name: aws-secretsmanager
+
+githubSecret:
+  awsSecretName: argocd
+  kubernetesSecretName: github-repository
+
+applicationSet:
+  applicationsPath: applications/*
+  namespace: default
 
 clusters:
+  matchLabels:
+    gitops: managed
 
-  - name: dev
-    server: https://DEV_ENDPOINT
-
-  - name: qa
-    server: https://QA_ENDPOINT
-
-  - name: stage
-    server: https://STAGE_ENDPOINT
-
-  - name: prod
-    server: https://PROD_ENDPOINT
-
-  - name: dr
-    server: https://DR_ENDPOINT
