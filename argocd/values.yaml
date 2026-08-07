@@ -1,32 +1,45 @@
-namespace: argocd
-
-serviceAccount:
-  name: argocd
-  iamRoleArn: arn:aws:iam::<ACCOUNT_ID>:role/argocd-management-role
-
 repository:
   url: https://github.com/sundeepreddy123/pipelines.git
   targetRevision: main
 
 project:
   name: platform
-  description: Enterprise GitOps Platform
-
-aws:
-  region: us-east-1
-
-clusterSecretStore:
-  name: aws-secretsmanager
-
-githubSecret:
-  awsSecretName: argocd
-  kubernetesSecretName: github-repository
 
 applicationSet:
   applicationsPath: applications/*
-  namespace: default
 
-clusters:
-  matchLabels:
-    gitops: managed
+  clusters:
+  - name: dev
+    type: workload
+    server: https://dev.eks.amazonaws.com
+    clusterName: dev-eks
+    roleArn: arn:aws:iam::111111111111:role/argocd-role
+    caData: BASE64_CA
 
+  - name: test
+    type: workload
+    server: https://test.eks.amazonaws.com
+    clusterName: test-eks
+    roleArn: arn:aws:iam::111111111111:role/argocd-role
+    caData: BASE64_CA
+
+  - name: stage
+    type: workload
+    server: https://stage.eks.amazonaws.com
+    clusterName: stage-eks
+    roleArn: arn:aws:iam::111111111111:role/argocd-role
+    caData: BASE64_CA
+
+  - name: prod
+    type: workload
+    server: https://prod.eks.amazonaws.com
+    clusterName: prod-eks
+    roleArn: arn:aws:iam::111111111111:role/argocd-role
+    caData: BASE64_CA
+
+  - name: management
+    type: management
+    server: https://management.eks.amazonaws.com
+    clusterName: management-eks
+    roleArn: arn:aws:iam::111111111111:role/argocd-role
+    caData: BASE64_CA

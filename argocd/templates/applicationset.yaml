@@ -6,63 +6,44 @@ metadata:
   namespace: {{ .Values.namespace }}
 
 spec:
-
   generators:
-
     - matrix:
-
         generators:
-
           - git:
-
-              repoURL: {{ .Values.repository.url }} # https://github.com/sundeepreddy123/pipelines.git
-
-              revision: {{ .Values.repository.targetRevision }} # main
-
+              repoURL: {{ .Values.repository.url }}
+              revision: {{ .Values.repository.targetRevision }}
               directories:
+                - path: {{ .Values.applicationSet.applicationsPath }}
 
-                - path: {{ .Values.applicationSet.applicationsPath }} # applications/*
-
-          - clusters: {}
+          - clusters: 
+              selector:
+                matchLabels:
+                  cluster-type: workload
 
   template:
-
     metadata:
-
-      name: '{{path.basename}}-{{name}}' # This will make the application name as <directory-name>-<cluster-name>.
+      name: '{{ "{{path.basename}}" }}-{{ "{{name}}" }}'
 
     spec:
-
-      project: {{ .Values.project.name }} # ap-south-1
+      project: {{ .Values.project.name }}
 
       source:
-
-        repoURL: {{ .Values.repository.url }} # https://github.com/sundeepreddy123/pipelines.git
-
-        targetRevision: {{ .Values.repository.targetRevision }} # main
-
-        path: '{{path}}' # applications/<app-name>
+        repoURL: {{ .Values.repository.url }}
+        targetRevision: {{ .Values.repository.targetRevision }}
+        path: '{{ "{{path}}" }}'
 
         helm:
-
           valueFiles:
-
-            - values-{{name}}.yaml # This will make the values file as values-<cluster-name>.yaml.
+            - values-{{ "{{name}}" }}.yaml
 
       destination:
-
-        server: '{{server}}' # This will make the destination server as <cluster-server>.
-
-        namespace: '{{path.basename}}' # This will make the destination namespace as <directory-name>.
+        server: '{{ "{{server}}" }}'
+        namespace: '{{ "{{path.basename}}" }}'
 
       syncPolicy:
-
         automated:
-
           prune: true
-
           selfHeal: true
 
         syncOptions:
-
           - CreateNamespace=true

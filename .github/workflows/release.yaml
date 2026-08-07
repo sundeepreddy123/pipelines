@@ -1,0 +1,48 @@
+name: Stage
+
+on:
+
+  push:
+
+    branches:
+
+      - "release/*"
+
+jobs:
+
+  release:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Build Image
+
+        run: |
+
+          docker build -t frontend:${{ github.ref_name }} .
+
+      - name: Push
+
+        run: |
+
+          docker push frontend:${{ github.ref_name }}
+
+      - name: Update Stage
+
+        run: |
+
+          git clone https://github.com/sundeepreddy123/pipelines.git gitops
+
+          cd gitops
+
+          yq -i '.image.tag="${{ github.ref_name }}"' \
+          applications/onlineboutique/values-stage.yaml
+
+          git add .
+
+          git commit -m "Deploy Stage"
+
+          git push

@@ -1,0 +1,38 @@
+name: Production
+
+on:
+
+  push:
+
+    branches:
+
+      - main
+
+jobs:
+
+  production:
+
+    runs-on: ubuntu-latest
+
+    environment: production
+
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Update Production
+
+        run: |
+
+          git clone https://github.com/sundeepreddy123/pipelines.git gitops
+
+          cd gitops
+
+          yq -i '.image.tag="${{ github.sha }}"' \
+          applications/onlineboutique/values-prod.yaml
+
+          git add .
+
+          git commit -m "Deploy Production"
+
+          git push
