@@ -1,102 +1,597 @@
-name: Application CD Pipeline
+name: Build and Push Product Service to ECR
 
 on:
-  # push:
-  #   branches: [ main ]
+
   workflow_dispatch:
 
-permissions:
-  contents: read
-  security-events: write
+    inputs:
+
+      image_tag:
+        description: "Choose the image tag to build and push"
+        required: false
+        default: "latest"
+        type: string
+
+env:
+
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+  ECR_REPOSITORY: product-service
+
+  JAVA_VERSION: "21"
 
 jobs:
-  application-ci:
+
+  # ============================================================
+  # 1. CHECKOUT + CODE QUALITY + SECURITY
+  # ============================================================
+
+  security:
+
+    name: Code Quality and Security
 
     runs-on: ubuntu-latest
 
-    env:
-      JAVA_VERSION: "21"
+    environment:
+      name: AWS-credentials
 
     steps:
 
-    ####################################################
-    # Checkout Source
-    ####################################################
+      # --------------------------------------------------------
+      # Checkout
+      # --------------------------------------------------------
 
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-     ####################################################
-    # Setup Java
-    ####################################################
+        with:
+          fetch-depth: 0
 
-    - name: Setup Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: temurin
-        java-version: ${{ env.JAVA_VERSION }}
+      # ========================================================
+      # SONARQUBE
+      # ========================================================
 
-     ####################################################
-    # SonarQube Code Quality
-    ####################################################
+      - name: SonarQube Scan
+        working-directory: src
 
-    - name: SonarQube Scan
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: |
-        mvn sonar:sonar \
-        -Dsonar.host.url=https://sonarqube.company.com \
-        -Dsonar.login=$SONAR_TOKEN
+        uses: SonarSource/sonarqube-scan-action@v8.2.1
 
-    ####################################################
-    # SAST (Semgrep)
-    ####################################################
+        env:
 
-    - name: Install Semgrep
-      run: |
-        python3 -m pip install semgrep
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
-    - name: Run Semgrep Scan
-      run: |
-        semgrep scan \
-        --config auto
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-    ####################################################
-    # Dependency Scan (Snyk)
-    ####################################################
+      # ========================================================
+      # SEMGREP
+      # ========================================================
 
-    - name: Install Snyk
-      run: |
-        npm install -g snyk
+      - name: Install Semgrep
 
-    - name: Authenticate Snyk
-      run: snyk auth ${{ secrets.SNYK_TOKEN }}
+        run: |
 
-    - name: Dependency Scan
-      run: |
-        snyk test
+          python3 -m pip install --upgrade semgrep
 
-    ####################################################
-    # Secret Scan (Gitleaks)
-    ####################################################
+      - name: Semgrep SAST Scan
 
-    - name: Run Gitleaks
-      uses: gitleaks/gitleaks-action@v2
+        run: |
 
-    ####################################################
-    # Build Application
-    ####################################################
+          semgrep scan \
+            --config auto \
+            --error
 
-    - name: Package Application
-      run: |
-        mvn clean package -DskipTests
+      # ========================================================
+      # SNYK
+      # ========================================================
 
-    ####################################################
-    # Upload Artifact
-    ####################################################
+      - name: Install Snyk
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: application-artifact
-        path: target/*.jar
+        run: |
+
+          npm install --global snyk
+
+      - name: Snyk Dependency Scan
+
+        env:
+
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+        run: |
+
+          snyk test \
+            --file=pom.xml \
+            --package-manager=maven
+
+      # =======================================================
+      # GITLEAKS
+      # ========================================================
+
+      - name: Gitleaks Secret Scan
+
+        uses: gitleaks/gitleaks-action@v3
+
+        env:
+
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+      # ========================================================
+      # UNIT TEST
+      # ========================================================
+
+      - name: Run Unit Tests
+
+        run: |
+
+          mvn clean test
+
+
+  # ============================================================
+  # 2. BUILD APPLICATION
+  # ============================================================
+
+  build:
+
+    name: Build Product Service
+
+    needs:
+
+      - security
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # --------------------------------------------------------
+      # Checkout
+      # --------------------------------------------------------
+
+      - name: Checkout code
+
+        uses: actions/checkout@v4
+
+
+      # --------------------------------------------------------
+      # Java
+      # --------------------------------------------------------
+
+      - name: Setup Java 21
+
+        uses: actions/setup-java@v4
+
+        with:
+
+          distribution: temurin
+
+          java-version: "21"
+
+
+      # --------------------------------------------------------
+      # Build
+      # --------------------------------------------------------
+
+      - name: Build application
+
+        run: |
+
+          mvn clean package -DskipTests
+
+
+      # --------------------------------------------------------
+      # Upload JAR
+      # --------------------------------------------------------
+
+      - name: Upload application artifact
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: product-service
+
+          path: target/*.jar
+
+          retention-days: 7
+
+
+  # ============================================================
+  # 3. BUILD DOCKER IMAGE + TRIVY
+  # ============================================================
+
+  docker:
+
+    name: Build Docker Image
+
+    needs:
+
+      - build
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: AWS-credentials
+
+    outputs:
+
+      image_tag: ${{ steps.image-info.outputs.image_tag }}
+
+      image_name: ${{ steps.image-info.outputs.image_name }}
+
+    steps:
+
+      # --------------------------------------------------------
+      # Checkout
+      # --------------------------------------------------------
+
+      - name: Checkout code
+
+        uses: actions/checkout@v4
+
+
+      # --------------------------------------------------------
+      # Download JAR
+      # --------------------------------------------------------
+
+      - name: Download Artifact
+
+        uses: actions/download-artifact@v4
+
+        with:
+
+          name: product-service
+
+          path: target
+
+
+      # --------------------------------------------------------
+      # Set Image Variables
+      # --------------------------------------------------------
+
+      - name: Set image information
+
+        id: image-info
+
+        run: |
+
+          IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+
+          if [ -z "$IMAGE_TAG" ]; then
+            IMAGE_TAG="latest"
+          fi
+
+          IMAGE_TAG="${IMAGE_TAG}.${GITHUB_RUN_NUMBER}"
+
+          IMAGE_NAME="${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+
+          echo "image_name=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+
+          echo "Building image: ${IMAGE_NAME}"
+
+
+      # --------------------------------------------------------
+      # Docker Build
+      # --------------------------------------------------------
+
+      - name: Build Docker image
+
+        run: |
+
+          docker build \
+            --pull \
+            -t "${{ steps.image-info.outputs.image_name }}" \
+            ./product-service
+
+
+      # ========================================================
+      # TRIVY
+      # ========================================================
+
+      - name: Trivy vulnerability scan
+
+        uses: aquasecurity/trivy-action@v0.36.0
+
+        with:
+
+          image-ref: "${{ steps.image-info.outputs.image_name }}"
+
+          format: table
+
+          exit-code: "1"
+
+          ignore-unfixed: true
+
+          vuln-type: "os,library"
+
+          severity: "HIGH,CRITICAL"
+
+
+      # --------------------------------------------------------
+      # Generate SBOM
+      # --------------------------------------------------------
+
+      - name: Generate SBOM
+
+        uses: aquasecurity/trivy-action@v0.36.0
+
+        with:
+
+          image-ref: "${{ steps.image-info.outputs.image_name }}"
+
+          format: cyclonedx
+
+          output: product-service-sbom.json
+
+
+      # --------------------------------------------------------
+      # Upload SBOM
+      # --------------------------------------------------------
+
+      - name: Upload SBOM
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: product-service-sbom
+
+          path: product-service-sbom.json
+
+          retention-days: 30
+
+
+  # ============================================================
+  # 4. PUSH TO ECR
+  # ============================================================
+
+  push:
+
+    name: Push Image to ECR
+
+    needs:
+
+      - docker
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: AWS-credentials
+
+    outputs:
+
+      image_uri: ${{ steps.image.outputs.image_uri }}
+
+      image_digest: ${{ steps.digest.outputs.digest }}
+
+    steps:
+
+      # --------------------------------------------------------
+      # AWS Credentials
+      # --------------------------------------------------------
+
+      - name: Configure AWS credentials
+
+        uses: aws-actions/configure-aws-credentials@v4
+
+        with:
+
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+
+          aws-region: ${{ env.AWS_REGION }}
+
+
+      # --------------------------------------------------------
+      # ECR Login
+      # --------------------------------------------------------
+
+      - name: Login to Amazon ECR
+
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      # --------------------------------------------------------
+      # Checkout
+      # --------------------------------------------------------
+
+      - name: Checkout code
+
+        uses: actions/checkout@v4
+
+
+      # --------------------------------------------------------
+      # Download Application
+      # --------------------------------------------------------
+
+      - name: Download Artifact
+
+        uses: actions/download-artifact@v4
+
+        with:
+
+          name: product-service
+
+          path: target
+
+
+      # --------------------------------------------------------
+      # Build ECR Image
+      # --------------------------------------------------------
+
+      - name: Build ECR image
+
+        run: |
+
+          docker build \
+            --pull \
+            -t "${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.docker.outputs.image_tag }}" \
+            ./product-service
+
+
+      # --------------------------------------------------------
+      # Push Image
+      # --------------------------------------------------------
+
+      - name: Push Docker image to ECR
+
+        run: |
+
+          IMAGE_URI="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ needs.docker.outputs.image_tag }}"
+
+          docker push "$IMAGE_URI"
+
+
+      # --------------------------------------------------------
+      # Get ECR Digest
+      # --------------------------------------------------------
+
+      - name: Get image digest
+
+        id: digest
+
+        run: |
+
+          DIGEST=$(aws ecr describe-images \
+            --repository-name "${{ env.ECR_REPOSITORY }}" \
+            --image-ids imageTag="${{ needs.docker.outputs.image_tag }}" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)
+
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+          echo "Image digest: ${DIGEST}"
+
+
+      # --------------------------------------------------------
+      # Create immutable image URI
+      # --------------------------------------------------------
+
+      - name: Set immutable image URI
+
+        id: image
+
+        run: |
+
+          IMAGE_URI="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}@${{ steps.digest.outputs.digest }}"
+
+          echo "image_uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+
+          echo "Immutable image: ${IMAGE_URI}"
+
+
+  # ============================================================
+  # 5. COSIGN
+  # ============================================================
+
+  cosign:
+
+    name: Sign ECR Image with Cosign
+
+    needs:
+
+      - push
+
+    runs-on: ubuntu-latest
+
+    permissions:
+
+      contents: read
+
+      id-token: write
+
+    environment:
+      name: AWS-credentials
+
+    steps:
+
+      # --------------------------------------------------------
+      # Install Cosign
+      # --------------------------------------------------------
+
+      - name: Install Cosign
+
+        uses: sigstore/cosign-installer@v3.9.2
+
+
+      # --------------------------------------------------------
+      # Configure AWS
+      # --------------------------------------------------------
+
+      - name: Configure AWS credentials
+
+        uses: aws-actions/configure-aws-credentials@v4
+
+        with:
+
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+
+          aws-region: ${{ env.AWS_REGION }}
+
+
+      # --------------------------------------------------------
+      # Login ECR
+      # --------------------------------------------------------
+
+      - name: Login to Amazon ECR
+
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      # --------------------------------------------------------
+      # Sign IMAGE DIGEST
+      # --------------------------------------------------------
+
+      - name: Cosign Sign Image
+
+        env:
+
+          IMAGE_URI: ${{ needs.push.outputs.image_uri }}
+
+        run: |
+
+          echo "Signing image: ${IMAGE_URI}"
+
+          cosign sign \
+            --yes \
+            "${IMAGE_URI}"
+
+
+      # --------------------------------------------------------
+      # Verify Signature
+      # --------------------------------------------------------
+
+      - name: Verify Cosign Signature
+
+        env:
+
+          IMAGE_URI: ${{ needs.push.outputs.image_uri }}
+
+        run: |
+
+          cosign verify \
+            "${IMAGE_URI}" \
+            --certificate-oidc-issuer \
+            "https://token.actions.githubusercontent.com"
+
+
+      # --------------------------------------------------------
+      # Display result
+      # --------------------------------------------------------
+
+      - name: Signing completed
+
+        run: |
+
+          echo "======================================"
+
+          echo "Image successfully signed"
+
+          echo "${{ needs.push.outputs.image_uri }}"
+
+          echo "======================================"

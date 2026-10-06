@@ -2,45 +2,64 @@ apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 
 metadata:
-  name: applications
-  namespace: {{ .Values.namespace }}
+  name: onlineboutique
+  namespace: argocd
 
 spec:
-  generators:
-    - matrix:
-        generators:
-          - git:
-              repoURL: {{ .Values.repository.url }}
-              revision: {{ .Values.repository.targetRevision }}
-              directories:
-                - path: {{ .Values.applicationSet.applicationsPath }}
 
-          - clusters: 
-              selector:
-                matchLabels:
-                  cluster-type: workload
+  goTemplate: true
+
+  generators:
+
+    - list:
+
+        elements:
+
+          - environment: dev
+            clusterName: dev-cluster
+            region: us-east-1
+
+          - environment: stage
+            clusterName: stage-cluster
+            region: us-east-1
+
+          - environment: prod
+            clusterName: prod-cluster
+            region: us-east-1
+
 
   template:
+
     metadata:
-      name: '{{ "{{path.basename}}" }}-{{ "{{name}}" }}'
+      name: '{{.clusterName}}'
 
     spec:
-      project: {{ .Values.project.name }}
+
+      project: default
 
       source:
-        repoURL: {{ .Values.repository.url }}
-        targetRevision: {{ .Values.repository.targetRevision }}
-        path: '{{ "{{path}}" }}'
+
+        repoURL: https://github.com/YOUR-ORG/YOUR-GITOPS-REPO.git
+
+        targetRevision: main
+
+        path: onlineboutique
 
         helm:
+
           valueFiles:
-            - values-{{ "{{name}}" }}.yaml
+            - 'values-{{.environment}}.yaml'
+
 
       destination:
-        server: '{{ "{{server}}" }}'
-        namespace: '{{ "{{path.basename}}" }}'
+
+        name: '{{.clusterName}}'
+
+        namespace: onlineboutique
+
 
       syncPolicy:
+
         automated:
           prune: true
           selfHeal: true
